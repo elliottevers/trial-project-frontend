@@ -1,20 +1,11 @@
 import {OpenAIProxyClient} from "./OpenAIProxyClient";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
-
-export enum GameMode {
-  FREE, // requires text to score
-  VERBATIM, // requires audio to score
-  MULTIPLE_CHOICE // requires index of clicked option to score
-}
-
-export enum IndexMultipleChoice {
-  FIRST,
-  SECOND,
-  THIRD,
-  FOURTH
-}
+import {notification} from "antd";
+import {DARK_RED, LIGHT_RED_BACKGROUND, RED_BORDER} from "./colors";
 
 export class Scorer {
+
+  THRESHOLD_FREE_ANSWER = .5
 
   openAIProxyClient: OpenAIProxyClient;
 
@@ -22,15 +13,10 @@ export class Scorer {
     this.openAIProxyClient = openAIProxyClient;
   }
 
-  // uses OpenAI
-  scoreFreeAnswer(trueAnswer: string, provided: string) {
-    // this.openAIProxyClient
-  }
-
   scoreVerbatimAnswer(groundTruth: string, onTranscription: (result: SpeechSDK.PronunciationAssessmentResult) => void): SpeechSDK.SpeechRecognizer {
     const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(
-      "34JhircvYMKZxfu9zlUpmuPrwWG4UkPZ34qkW5FTGvRvJiMsv5h9JQQJ99ALAC4f1cMXJ3w3AAAYACOGGUF8",
-      "westus"
+      process.env.AZURE_VOCAL_SERVICE_KEY,
+      process.env.AZURE_VOCAL_SERVICE_REGION
     );
 
     const pronunciationConfig = SpeechSDK.PronunciationAssessmentConfig.fromJSON(
@@ -54,13 +40,29 @@ export class Scorer {
           const pronunciationAssessmentResult = SpeechSDK.PronunciationAssessmentResult.fromResult(result);
           onTranscription(pronunciationAssessmentResult);
         } else {
-          console.log("Something went wrong with vocal transcription");
+          notification.open({
+            message: 'Something went wrong with vocal transcription.',
+            description: `Please try again.`,
+            style: {
+              backgroundColor: LIGHT_RED_BACKGROUND,
+              borderColor: RED_BORDER,
+              color: DARK_RED,
+            },
+          });
         }
 
         recognizer.close();
       },
       (err) => {
-        console.log(`Error with vocal transcription: ${err}`);
+        notification.open({
+          message: 'Something went wrong with vocal transcription.',
+          description: `${err}`,
+          style: {
+            backgroundColor: LIGHT_RED_BACKGROUND,
+            borderColor: RED_BORDER,
+            color: DARK_RED,
+          },
+        });
         recognizer.close();
       }
     );
@@ -68,73 +70,47 @@ export class Scorer {
     return recognizer;
   }
 
-  // scoreMultipleChoice(index: number)
+  scoreFreeAnswer(
+    domain: string,
+    word: string,
+    userAnswer: string,
+    onCorrect: (similarityScore: number) => void,
+    onIncorrect: (similarityScore: number) => void
+  ): void {
+    this.openAIProxyClient.scoreUserAnswer(
+      domain,
+      word,
+      userAnswer
+    ).then(axiosResponse => {
+      if (axiosResponse.data.similarityScore > this.THRESHOLD_FREE_ANSWER) {
+        onCorrect(axiosResponse.data.similarityScore);
+      } else {
+        onIncorrect(axiosResponse.data.similarityScore);
+      }
+    }).catch(e => {
+      notification.open({
+        message: 'Something went wrong with answer scoring.',
+        description: `${e}`,
+        style: {
+          backgroundColor: LIGHT_RED_BACKGROUND,
+          borderColor: RED_BORDER,
+          color: DARK_RED,
+        },
+      });
+    })
+  }
+
+
+  scoreMultipleChoice(
+    selectedAnswerText: string,
+    correctDefinition: string,
+    onCorrect: () => void,
+    onIncorrect: () => void
+  ){
+    if (selectedAnswerText === correctDefinition) {
+      onCorrect()
+    } else {
+      onIncorrect()
+    }
+  }
 }
-
-
-
-
-
-// type Root = {
-//   privPronJson: PrivPronJson;
-// };
-
-
-// "Confidence": 0.9822811,
-//   "Lexical": "This is the definition of a word",
-//   "ITN": "This is the definition of a word",
-//   "MaskedITN": "this is the definition of a word",
-//   "Display": "This is the definition of a word.",
-//   "PronunciationAssessment": {
-//   "AccuracyScore": 100,
-//     "FluencyScore": 100,
-//     "CompletenessScore": 100,
-//     "PronScore": 100
-// },
-// "Words": [
-//   {
-//     "Word": "This",
-//     "Offset": 8800000,
-//     "Duration": 5600000,
-//     "PronunciationAssessment": {
-//       "AccuracyScore": 100,
-//       "ErrorType": "None"
-//     },
-//     "Syllables": [
-//       {
-//         "Syllable": "ðɪs",
-//         "Grapheme": "this",
-//         "PronunciationAssessment": {
-//           "AccuracyScore": 100
-//         },
-//         "Offset": 8800000,
-//         "Duration": 5600000
-//       }
-//     ],
-//     "Phonemes": [
-//       {
-//         "Phoneme": "ð",
-//         "PronunciationAssessment": {
-//           "AccuracyScore": 100
-//         },
-//         "Offset": 8800000,
-//         "Duration": 2800000
-//       },
-//       {
-//         "Phoneme": "ɪ",
-//         "PronunciationAssessment": {
-//           "AccuracyScore": 100
-//         },
-//         "Offset": 11700000,
-//         "Duration": 1300000
-//       },
-//       {
-//         "Phoneme": "s",
-//         "PronunciationAssessment": {
-//           "AccuracyScore": 100
-//         },
-//         "Offset": 13100000,
-//         "Duration": 1300000
-//       }
-//     ]
-//   },

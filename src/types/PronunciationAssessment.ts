@@ -10,10 +10,10 @@ export type PronunciationAssessmentResult = {
 
 export type PronunciationAssessment = {
   AccuracyScore: number;
-  FluencyScore?: number; // Optional, as it only appears in the parent PronunciationAssessment
-  CompletenessScore?: number; // Optional, as it only appears in the parent PronunciationAssessment
-  PronScore?: number; // Optional, as it only appears in the parent PronunciationAssessment
-  ErrorType?: string; // Optional, as it appears only in nested PronunciationAssessments
+  FluencyScore?: number;
+  CompletenessScore?: number;
+  PronScore?: number;
+  ErrorType?: string;
 };
 
 export type Word = {

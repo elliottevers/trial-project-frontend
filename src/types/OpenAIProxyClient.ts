@@ -6,15 +6,13 @@ export class OpenAIProxyClient {
   baseUrl: string;
 
   constructor(url: string, port: number) {
-    this.baseUrl = url + ':' + port;
+    // this.baseUrl = url + ':' + port;
+    this.baseUrl = url;
   }
-
-  // Promise<OpenAIGeneratedQuestion>
 
   generateQuestion(domain: string, seenWords: string[]): Promise<AxiosResponse<OpenAIGeneratedQuestion>> {
     return axios.post(
       this.baseUrl + '/generateQuestion',
-      // 'http://localhost:3001/generateQuestion',
       {
         domain,
         seenWords

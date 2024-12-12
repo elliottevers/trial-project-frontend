@@ -1,13 +1,11 @@
-import React, {useEffect, useState} from "react";
-import "./CustomTree.css";
+import React from "react";
+import "./PronunciationResultsTree.css";
 
 
-// Recursive TreeNode Component
 const TreeNode = ({ node }) => {
-  // Function to calculate the background color based on accuracyScore
   const getBackgroundColor = (accuracyScore) => {
     if (accuracyScore === null || accuracyScore === undefined) {
-      return "#ccc"; // Gray for nodes without scores
+      return "#ccc";
     }
     const green = Math.round((accuracyScore / 100) * 255);
     const red = 255 - green;
@@ -17,7 +15,6 @@ const TreeNode = ({ node }) => {
   return (
     <div className="tree-node">
       <div className="node-content">
-        {/* Accuracy Score */}
         {node.attributes?.accuracyScore !== undefined && (
           <div className="accuracy-score">{node.attributes.accuracyScore}%</div>
         )}
@@ -31,7 +28,6 @@ const TreeNode = ({ node }) => {
         </div>
       </div>
 
-      {/* Render child nodes */}
       {node.children && (
         <div className="tree-children">
           {node.children.map((child, index) => (
@@ -51,19 +47,14 @@ const WordGroup = ({ wordNode }) => {
   );
 };
 
-const CustomTree = ({ data }) => {
+const PronunciationResultsTree = ({ data }) => {
   return (
     <div className="tree-container">
-      {/* Tree Visualization */}
       <div className="tree">
-        {/* Render Sentence Level */}
-        {/*<div className="tree-sentence">*/}
           <div className="sentence-label">
             <h2>Pronunciation Test Results:</h2>
             <div className="sentence-text" style={{paddingBottom: 20}}>{data.name}</div>
           </div>
-        {/*</div>*/}
-        {/* Render Words, Syllables, and Phonemes */}
         <div className="tree-levels">
           <div className="words-container">
             {data.children.map((word, index) => (
@@ -76,4 +67,58 @@ const CustomTree = ({ data }) => {
   );
 };
 
-export default CustomTree;
+export const constructTree = (rawData: any) => {
+  const rootNode = {
+    name: rawData.map(item => item.Word).join(" "),
+    attributes: {},
+    children: []
+  };
+
+  rawData.forEach(wordObj => {
+    const wordNode = {
+      name: wordObj.Word,
+      attributes: {
+        accuracyScore: wordObj.PronunciationAssessment?.AccuracyScore || null
+      },
+      children: []
+    };
+
+    if (wordObj.Syllables && Array.isArray(wordObj.Syllables)) {
+      wordObj.Syllables.forEach(syllableObj => {
+        const syllableNode = {
+          name: syllableObj.Syllable,
+          attributes: {
+            accuracyScore:
+              syllableObj.PronunciationAssessment?.AccuracyScore || null
+          },
+          children: []
+        };
+
+        if (wordObj.Phonemes && Array.isArray(wordObj.Phonemes)) {
+          wordObj.Phonemes.forEach(phonemeObj => {
+            if (
+              phonemeObj.Offset >= syllableObj.Offset &&
+              phonemeObj.Offset < syllableObj.Offset + syllableObj.Duration
+            ) {
+              syllableNode.children.push({
+                name: phonemeObj.Phoneme,
+                attributes: {
+                  accuracyScore:
+                    phonemeObj.PronunciationAssessment?.AccuracyScore || null
+                }
+              });
+            }
+          });
+        }
+
+        wordNode.children.push(syllableNode);
+      });
+    }
+
+    rootNode.children.push(wordNode);
+  });
+
+  return rootNode;
+}
+
+export default PronunciationResultsTree;

@@ -1,0 +1,6 @@
+export const LIGHT_GREEN_BACKGROUND = '#d4edda'
+export const GREEN_BORDER = '#c3e6cb'
+export const GREEN = '#155724'
+export const LIGHT_RED_BACKGROUND = '#f8d7da'
+export const RED_BORDER = '#f5c6cb'
+export const DARK_RED = '#721c24'
